@@ -75,19 +75,13 @@ public class Main extends Application {
     return portPairs;
   }
 
-  public static void createFirstWindow() {
+  public static void initializeWindows() {
     Dimension displayDimension = Toolkit.getDefaultToolkit().getScreenSize();
     double windowWidth = (double) (displayDimension.width / 2 - 120);
     double windowHeight = (double) (displayDimension.height - 200);
 
     AnchorPane firstWindowPane = new AnchorPane();
     AnchorPane secondWindowPane = new AnchorPane();
-
-
-    //
-    //FIRST WINDOW
-    //
-
 
     Label firstWindowsInputFieldLabel = new Label("Input: ");
     firstWindowsInputFieldLabel.setFont(Font.font("Calibri", 16));
@@ -160,12 +154,6 @@ public class Main extends Application {
     AnchorPane.setTopAnchor(firstWindowBytesLabel, 255.0);
     firstWindowPane.getChildren().add(firstWindowBytesLabel);
 
-
-    //
-    //SECOND WINDOW
-    //
-
-
     Label secondInputFieldLabel = new Label("Input: ");
     secondInputFieldLabel.setFont(Font.font("Calibri", 16));
     AnchorPane.setLeftAnchor(secondInputFieldLabel, 10.0);
@@ -237,12 +225,6 @@ public class Main extends Application {
     AnchorPane.setTopAnchor(secondWindowBytesLabel, 255.0);
     secondWindowPane.getChildren().add(secondWindowBytesLabel);
 
-
-    //
-    // ? ???? ????? ??????????? ?????, ??????? ????? ???????????? ???????? ????? ????
-    //
-
-
     ComboBox<String> firstWindowInputPortBox = new ComboBox<>();
     firstWindowInputPortBox.setPrefSize(150, 30);
     firstWindowInputPortBox.setValue(ports.keySet().stream().toList().get(0));
@@ -303,28 +285,25 @@ public class Main extends Application {
     firstWindowSendButton.setOnAction(event -> {
       Thread sendData = new Thread(() -> {
         try {
-          firstWindowPortsPair[0].openPort();
-          firstWindowPortsPair[1].openPort();
-          firstWindowPortsPair[0].setParams(firstPairSpeed, 8, 1, 0);
-          firstWindowPortsPair[1].setParams(firstPairSpeed, 8, 1, 0);
-
-          byte[] readByte;
-          for (byte curByte : firstWindowsPortInputField.getText().getBytes()) {
-            firstWindowPortsPair[0].writeByte(curByte);
-          }
-          readByte = firstWindowPortsPair[1].readBytes();
-          firstWindowsPortInputField.setText("");
-          secondWindowsOutputField.setText(new String(readByte));
-          secondWindowBytesReceivedField.setText(String.valueOf(readByte.length));
-        } catch (SerialPortException e) {
-          throw new RuntimeException(e);
-        } finally {
-          try {
+          long[] allBits = new long[0];
+          List<long[]> packageToSend =
+              BitStuffingClass.listOfLongBitsToSend(firstWindowsPortInputField.getText(),
+                  firstWindowPortsPair[0].getPortName());
+          for(long[] onePackage : packageToSend) {
+            firstWindowPortsPair[0].openPort();
+            firstWindowPortsPair[1].openPort();
+            firstWindowPortsPair[0].setParams(firstPairSpeed, 8, 1, 0);
+            firstWindowPortsPair[1].setParams(firstPairSpeed, 8, 1, 0);
+            firstWindowPortsPair[0].writeIntArray(BitStuffingClass.fromLongToInt(onePackage));
+            allBits = BitStuffingClass.extractDataFromPackage(allBits, BitStuffingClass.dataFromPackage(BitStuffingClass.fromIntToLong(firstWindowPortsPair[1].readIntArray())));
+            System.out.println(Arrays.toString(allBits));
             firstWindowPortsPair[0].closePort();
             firstWindowPortsPair[1].closePort();
-          } catch (SerialPortException e) {
-            throw new RuntimeException(e);
           }
+          secondWindowBytesReceivedField.setText(String.valueOf(packageToSend.size() * 24));
+          secondWindowsOutputField.setText(BitStuffingClass.convertFromLongBitsToString(BitStuffingClass.bitStuffingDataFrom(BitStuffingClass.cutting(allBits))));
+        } catch (SerialPortException e) {
+          throw new RuntimeException(e);
         }
       });
 
@@ -355,9 +334,9 @@ public class Main extends Application {
             secondWindowPortsPair[0].writeByte(curByte);
           }
           readByte = secondWindowPortsPair[1].readBytes();
-          secondWindowsPortInputField.setText("");
           firstWindowsOutputField.setText(new String(readByte));
           firstWindowBytesReceivedField.setText(String.valueOf(readByte.length));
+
         } catch (SerialPortException e) {
           throw new RuntimeException(e);
         } finally {
@@ -377,8 +356,6 @@ public class Main extends Application {
         throw new RuntimeException(e);
       }
     });
-
-
 
     Scene firstWindowScene =
         new Scene(firstWindowPane, windowWidth, windowHeight);
@@ -410,6 +387,6 @@ public class Main extends Application {
       System.err.println("Not Enough Ports For Work!");
       return;
     }
-    createFirstWindow();
+    initializeWindows();
   }
 }

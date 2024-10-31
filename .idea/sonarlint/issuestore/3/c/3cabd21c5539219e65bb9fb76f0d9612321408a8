@@ -1,11 +1,9 @@
 
 {
-java:S30129"YUse "Arrays.copyOf", "Arrays.asList", "Collections.addAll" or "System.arraycopy" instead.(ø ¡Œùÿÿÿÿ8Ô¬õí­2
-E
-java:S1481Z")Remove this unused "bits" local variable.(ñ¹Ûf8×¬õí­2
-I
-java:S1905â"&Remove this unnecessary cast to "int".(–ÄËŒüÿÿÿÿ8á¬õí­2
-I
-java:S1905‚"&Remove this unnecessary cast to "int".(–ÄËŒüÿÿÿÿ8ä¬õí­2
+java:S3012D"YUse "Arrays.copyOf", "Arrays.asList", "Collections.addAll" or "System.arraycopy" instead.(ø ¡Œùÿÿÿÿ8¨šŒ®2
 v
-java:S3012­"YUse "Arrays.copyOf", "Arrays.asList", "Collections.addAll" or "System.arraycopy" instead.(¹±€O8è¬õí­2
+java:S3012à"YUse "Arrays.copyOf", "Arrays.asList", "Collections.addAll" or "System.arraycopy" instead.(¹±€O8´šŒ®2
+O
+java:S1128"-Remove this unused import 'java.util.Arrays'.(î–˜Éüÿÿÿÿ8¹ñÑ®2
+O
+java:S1128"-Remove this unused import 'java.util.BitSet'.(‹¸ÚÁıÿÿÿÿ8¹ñÑ®2

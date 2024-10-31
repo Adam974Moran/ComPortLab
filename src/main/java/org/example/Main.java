@@ -13,6 +13,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.text.Font;
@@ -154,6 +155,14 @@ public class Main extends Application {
     AnchorPane.setTopAnchor(firstWindowBytesLabel, 255.0);
     firstWindowPane.getChildren().add(firstWindowBytesLabel);
 
+    TextArea firstWindowsStatusBar = new TextArea();
+    firstWindowsStatusBar.setMinSize((int)(windowWidth - 20), 300);
+    firstWindowsStatusBar.setMaxSize((int)(windowWidth - 20), 300);
+    firstWindowsStatusBar.setEditable(false);
+    AnchorPane.setLeftAnchor(firstWindowsStatusBar, 10.0);
+    AnchorPane.setTopAnchor(firstWindowsStatusBar, 300.0);
+    firstWindowPane.getChildren().add(firstWindowsStatusBar);
+
     Label secondInputFieldLabel = new Label("Input: ");
     secondInputFieldLabel.setFont(Font.font("Calibri", 16));
     AnchorPane.setLeftAnchor(secondInputFieldLabel, 10.0);
@@ -225,6 +234,17 @@ public class Main extends Application {
     AnchorPane.setTopAnchor(secondWindowBytesLabel, 255.0);
     secondWindowPane.getChildren().add(secondWindowBytesLabel);
 
+    TextArea secondWindowsStatusBar = new TextArea();
+    secondWindowsStatusBar.setMinSize((windowWidth - 20), 300);
+    secondWindowsStatusBar.setMaxSize((windowWidth - 20), 300);
+    secondWindowsStatusBar.setStyle("-fx-alignment: top-left;");
+    secondWindowsStatusBar.setEditable(false);
+    AnchorPane.setLeftAnchor(secondWindowsStatusBar, 10.0);
+    AnchorPane.setTopAnchor(secondWindowsStatusBar, 300.0);
+    secondWindowPane.getChildren().add(secondWindowsStatusBar);
+
+
+
     ComboBox<String> firstWindowInputPortBox = new ComboBox<>();
     firstWindowInputPortBox.setPrefSize(150, 30);
     firstWindowInputPortBox.setValue(ports.keySet().stream().toList().get(0));
@@ -286,22 +306,41 @@ public class Main extends Application {
       Thread sendData = new Thread(() -> {
         try {
           long[] allBits = new long[0];
+
           List<long[]> packageToSend =
               BitStuffingClass.listOfLongBitsToSend(firstWindowsPortInputField.getText(),
                   firstWindowPortsPair[0].getPortName());
+
+          secondWindowsStatusBar.setText(Output.listOfLongBitsToSend(firstWindowsPortInputField.getText(),
+              firstWindowPortsPair[0].getPortName()));
+
           for(long[] onePackage : packageToSend) {
             firstWindowPortsPair[0].openPort();
             firstWindowPortsPair[1].openPort();
             firstWindowPortsPair[0].setParams(firstPairSpeed, 8, 1, 0);
             firstWindowPortsPair[1].setParams(firstPairSpeed, 8, 1, 0);
-            firstWindowPortsPair[0].writeIntArray(BitStuffingClass.fromLongToInt(onePackage));
-            allBits = BitStuffingClass.extractDataFromPackage(allBits, BitStuffingClass.dataFromPackage(BitStuffingClass.fromIntToLong(firstWindowPortsPair[1].readIntArray())));
-            System.out.println(Arrays.toString(allBits));
+
+            byte[] longBitsToBytes = BytesBits.fromBitsToByteArray(onePackage);
+            firstWindowPortsPair[0].writeBytes(longBitsToBytes);
+            byte[] receivedBytes = firstWindowPortsPair[1].readBytes();
+            long[] receivedBytesInLong = BytesBits.fromBytesArrayToBits(receivedBytes);
+
+            allBits = BitStuffingClass.extractDataFromPackage(allBits, BitStuffingClass.dataFromPackage(receivedBytesInLong));
+            BitStuffingClass.outputln(allBits);
+
+
             firstWindowPortsPair[0].closePort();
             firstWindowPortsPair[1].closePort();
           }
+          long[] cuttedBits = BitStuffingClass.cutting(allBits);
+          long[] stuffedBits = BitStuffingClass.bitStuffingDataTo(cuttedBits);
+          for(long l : stuffedBits){
+            System.out.print(l);
+          }
+          System.out.println();
+
           secondWindowBytesReceivedField.setText(String.valueOf(packageToSend.size() * 24));
-          secondWindowsOutputField.setText(BitStuffingClass.convertFromLongBitsToString(BitStuffingClass.bitStuffingDataFrom(BitStuffingClass.cutting(allBits))));
+          secondWindowsOutputField.setText(new String(BytesBits.fromBitsToByteArray(stuffedBits)));
         } catch (SerialPortException e) {
           throw new RuntimeException(e);
         }
@@ -324,19 +363,42 @@ public class Main extends Application {
     secondWindowSendButton.setOnAction(event -> {
       Thread sendData = new Thread(() -> {
         try {
-          secondWindowPortsPair[0].openPort();
-          secondWindowPortsPair[1].openPort();
-          secondWindowPortsPair[0].setParams(secondPairSpeed, 8, 1, 0);
-          secondWindowPortsPair[1].setParams(secondPairSpeed, 8, 1, 0);
+          long[] allBits = new long[0];
 
-          byte[] readByte;
-          for (byte curByte : secondWindowsPortInputField.getText().getBytes()) {
-            secondWindowPortsPair[0].writeByte(curByte);
+          List<long[]> packageToSend =
+              BitStuffingClass.listOfLongBitsToSend(secondWindowsPortInputField.getText(),
+                  secondWindowPortsPair[0].getPortName());
+
+          firstWindowsStatusBar.setText(Output.listOfLongBitsToSend(secondWindowsPortInputField.getText(),
+              secondWindowPortsPair[0].getPortName()));
+
+          for(long[] onePackage : packageToSend) {
+            secondWindowPortsPair[0].openPort();
+            secondWindowPortsPair[1].openPort();
+            secondWindowPortsPair[0].setParams(secondPairSpeed, 8, 1, 0);
+            secondWindowPortsPair[1].setParams(secondPairSpeed, 8, 1, 0);
+
+            byte[] longBitsToBytes = BytesBits.fromBitsToByteArray(onePackage);
+            secondWindowPortsPair[0].writeBytes(longBitsToBytes);
+            byte[] receivedBytes = secondWindowPortsPair[1].readBytes();
+            long[] receivedBytesInLong = BytesBits.fromBytesArrayToBits(receivedBytes);
+
+            allBits = BitStuffingClass.extractDataFromPackage(allBits, BitStuffingClass.dataFromPackage(receivedBytesInLong));
+            BitStuffingClass.outputln(allBits);
+
+
+            secondWindowPortsPair[0].closePort();
+            secondWindowPortsPair[1].closePort();
           }
-          readByte = secondWindowPortsPair[1].readBytes();
-          firstWindowsOutputField.setText(new String(readByte));
-          firstWindowBytesReceivedField.setText(String.valueOf(readByte.length));
+          long[] cuttedBits = BitStuffingClass.cutting(allBits);
+          long[] stuffedBits = BitStuffingClass.bitStuffingDataTo(cuttedBits);
+          for(long l : stuffedBits){
+            System.out.print(l);
+          }
+          System.out.println();
 
+          firstWindowBytesReceivedField.setText(String.valueOf(packageToSend.size() * 24));
+          firstWindowsOutputField.setText(new String(BytesBits.fromBitsToByteArray(stuffedBits)));
         } catch (SerialPortException e) {
           throw new RuntimeException(e);
         } finally {

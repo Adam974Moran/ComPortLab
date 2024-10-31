@@ -32,15 +32,26 @@ public class BitStuffingClass {
       }
     }
 
-    System.out.print("Data Before Bit Stuffing: ");
-    for (long newLongBit : newLongBits) {
-      System.out.print(newLongBit);
+    System.out.println(newLongBits.length);
+
+    int fullAmountOfBits = (newLongBits.length % 8 > 0) ? (newLongBits.length / 8 + 1) * 8 :
+        newLongBits.length;
+
+    System.out.println(fullAmountOfBits);
+    long[] fullBitsArray = new long[fullAmountOfBits];
+    for(int i = 0; i < fullBitsArray.length; i++){
+      fullBitsArray[i] = 0;
     }
-    System.out.println("\n");
+    for(int i = 0; i < fullAmountOfBits; i++){
+      if(i < newLongBits.length) {
+        fullBitsArray[i] = newLongBits[i];
+      }
+      else{
+        fullBitsArray[i] = 0;
+      }
+    }
 
-    System.out.println("String: " + new String(convertFromLongBitsToByteArray(newLongBits)));
-
-    return newLongBits;
+    return fullBitsArray;
   }
 
   public static long[] bitStuffingDataFrom(long[] longBits) {
@@ -67,59 +78,46 @@ public class BitStuffingClass {
         zeroes = 0;
       }
     }
-
-    System.out.print("Data After Bit Stuffing: ");
-    for (int i = 0; i < newLongBits.length; i++) {
-      if (onesBitsPos.contains(i)) {
-        System.out.print(" (" + newLongBits[i] + ") ");
-      } else {
+    for (int i = 0; i < newLongBits.length; i++){
+      if(onesBitsPos.contains(i)){
+        System.out.print("(" + 1 + ")");
+      }
+      else {
         System.out.print(newLongBits[i]);
       }
     }
-    System.out.println("\n");
-
+    System.out.println();
     return newLongBits;
   }
 
 
   public static List<long[]> listOfLongBitsToSend(String string, String portName) {
     List<long[]> partsToSend = new LinkedList<>();
-    long[] longBits = convertFromStringToLongBits(string);
+    long[] longBits = BytesBits.fromBytesArrayToBits(string.getBytes());
+    for(long l : longBits){
+      System.out.print(l);
+    }
+    System.out.println();
     long[] bitStuffingLongBits = bitStuffingDataFrom(longBits);
-    bitStuffingDataTo(bitStuffingLongBits);
-    int bits = 0;
+    outputln(bitStuffingLongBits);
     long[] data = new long[56];
+    for(int i = 0; i < data.length; i++){
+      data[i] = 0;
+    }
 
     int iterations = (bitStuffingLongBits.length % 56 != 0) ? bitStuffingLongBits.length / 56 + 1 :
         bitStuffingLongBits.length / 56;
-    System.out.println(bitStuffingLongBits.length + " " + iterations);
 
-    long[] allData = new long[0];
     for(int i = 0; i < iterations; i++){
       for(int j = 0; j < 56; j++){
         if(j < bitStuffingLongBits.length - (i * 56)) {
           data[j] = bitStuffingLongBits[i * 56 + j];
         }
-        else{
+        else {
           data[j] = 0;
         }
       }
       partsToSend.add(getLongBitPackage(data, portName));
-    }
-
-    System.out.println(convertFromLongBitsToString(allData));
-//    for (int i = 0; i < bitStuffingLongBits.length; i++) {
-//      if (i % 56 != 0 || i == 0) {
-//        data[bits] = bitStuffingLongBits[i];
-//        bits++;
-//      } else {
-//        partsToSend.add(getLongBitPackage(data, portName));
-//        bits = 0;
-//        data[bits] = bitStuffingLongBits[i];
-//      }
-//    }
-    for (long[] bitsPackage : partsToSend) {
-      System.out.println("bytesToSend: " + Arrays.toString(bitsPackage));
     }
     return partsToSend;
   }
@@ -132,17 +130,12 @@ public class BitStuffingClass {
   }
 
   public static long[] getLongBitPackage(long[] bitStuff, String portName) {
-    long[] flag = convertFromStringToLongBits(new String(new byte[] {6}));
-    long[] finalFlag = new long[flag.length + 56];
-    for (int i = 0; i < finalFlag.length; i++) {
-      if (i < flag.length) {
-        finalFlag[i] = flag[i];
-      } else {
-        finalFlag[i] = 0;
-      }
-    }
+    long[] flag = BytesBits.fromBytesArrayToBits(new byte[]{0, 0, 0, 0, 0, 0, 0, 6});
     System.out.print("getLongBitPackage(flag): ");
-    outputln(finalFlag);
+    for(long l : flag){
+      System.out.print(l);
+    }
+    System.out.println();
 
     long[] destination =
         new long[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -165,11 +158,11 @@ public class BitStuffingClass {
     System.out.println();
 
     long[] datePackage =
-        new long[finalFlag.length + destination.length + source.length + data.length +
+        new long[flag.length + destination.length + source.length + data.length +
             fcs.length];
     int index = 0;
-    System.arraycopy(finalFlag, 0, datePackage, index, finalFlag.length);
-    index += finalFlag.length;
+    System.arraycopy(flag, 0, datePackage, index, flag.length);
+    index += flag.length;
     System.arraycopy(destination, 0, datePackage, index, destination.length);
     index += destination.length;
     System.arraycopy(source, 0, datePackage, index, source.length);
@@ -177,7 +170,6 @@ public class BitStuffingClass {
     System.arraycopy(data, 0, datePackage, index, data.length);
     index += data.length;
     System.arraycopy(fcs, 0, datePackage, index, fcs.length);
-    System.out.println(Arrays.toString(datePackage));
     
     return datePackage;
   }
@@ -203,12 +195,11 @@ public class BitStuffingClass {
       data[j] = fullPackage[i];
       j++;
     }
-    System.out.println("data: " + Arrays.toString(data));
     return data;
   }
 
   public static long[] getPortNumInLongBits(String portNum) {
-    long[] portNumLongBits = convertFromBytesToLongBits(portNum.getBytes());
+    long[] portNumLongBits = BytesBits.fromBytesArrayToBits(portNum.getBytes());
     long[] finalPortNumBits = new long[32];
     for (int i = 0; i < finalPortNumBits.length; i++) {
       if (i < portNumLongBits.length) {
@@ -218,74 +209,6 @@ public class BitStuffingClass {
       }
     }
     return finalPortNumBits;
-  }
-
-  public static long[] convertFromStringToLongBits(String string) {
-    BitSet bitSet = BitSet.valueOf(string.getBytes());
-    int longBitsSize =
-        (int) (((bitSet.length() / 8.0) % 1 == 0) ?
-            8 * (int) (bitSet.length() / 8.0) :
-            8 * (int) (bitSet.length() / 8.0 + 1));
-
-    long[] longBits = new long[longBitsSize];
-
-    for (int i = 0; i < bitSet.length(); i++) {
-      if (bitSet.get(i)) {
-        longBits[i] = 1;
-      } else {
-        longBits[i] = 0;
-      }
-    }
-
-    for (int i = bitSet.length(); i < longBitsSize; i++) {
-      longBits[i] = 0;
-    }
-
-    return longBits;
-  }
-
-  public static byte[] convertFromLongBitsToByteArray(long[] longBits) {
-    BitSet bitSet = new BitSet(longBits.length);
-    for (int i = 0; i < longBits.length; i++) {
-      bitSet.set(i, longBits[i] != 0);
-    }
-    return bitSet.toByteArray();
-  }
-
-  public static long[] convertFromBytesToLongBits(byte[] bytes) {
-    BitSet bitSet = BitSet.valueOf(bytes);
-    int longBitsSize =
-        (int) (((bitSet.length() / 8.0) % 1 == 0) ?
-            8 * (int) (bitSet.length() / 8.0) :
-            8 * (int) (bitSet.length() / 8.0 + 1));
-
-    long[] longBits = new long[longBitsSize];
-
-    for (int i = 0; i < bitSet.length(); i++) {
-      if (bitSet.get(i)) {
-        longBits[i] = 1;
-      } else {
-        longBits[i] = 0;
-      }
-    }
-
-    for (int i = bitSet.length(); i < longBitsSize; i++) {
-      longBits[i] = 0;
-    }
-
-    return longBits;
-  }
-
-  public static int[] fromLongToInt(long[] longBytes) {
-    return Arrays.stream(longBytes).mapToInt(value -> (int) value).toArray();
-  }
-
-  public static long[] fromIntToLong(int[] intBytes) {
-    return Arrays.stream(intBytes).mapToLong(value -> (long) value).toArray();
-  }
-
-  public static String convertFromLongBitsToString(long[] longBits) {
-    return new String(convertFromLongBitsToByteArray(longBits));
   }
 
   public static long[] cutting(long[] args) {

@@ -9,3 +9,5 @@ U
 %src/main/java/org/example/Output.java,c\3\c3d1724246db268b7d67ef89a9cf8a62f0a9cef0
 X
 (src/main/java/org/example/BytesBits.java,7\0\70d87af652ab59d954a9142d058edd4d5bf02bd0
+_
+/src/main/java/org/example/HemmingCodeClass.java,4\c\4cd9844b2d87b259e2d63ed997b13242c4347ef3

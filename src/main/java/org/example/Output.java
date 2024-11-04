@@ -63,11 +63,15 @@ public class Output {
     List<String> partsToSend = new LinkedList<>();
     long[] longBits = BytesBits.fromBytesArrayToBits(string.getBytes());
     fullOutput.append(bitStuffingDataFrom(longBits)).append("\n\n");
-    long[] bitStuffingLongBits = BitStuffingClass.bitStuffingDataFrom(longBits);
+    long[] beforeDistort = BitStuffingClass.bitStuffingDataFrom(longBits);
+    outputln(beforeDistort);
+    long[] bitStuffingLongBits = BitStuffingClass.distortData(beforeDistort);
     outputln(bitStuffingLongBits);
     long[] data = new long[56];
+    long[] wrongData = new long[56];
     for(int i = 0; i < data.length; i++){
       data[i] = 0;
+      wrongData[i] = 0;
     }
 
     int iterations = (bitStuffingLongBits.length % 56 != 0) ? bitStuffingLongBits.length / 56 + 1 :
@@ -76,13 +80,15 @@ public class Output {
     for(int i = 0; i < iterations; i++){
       for(int j = 0; j < 56; j++){
         if(j < bitStuffingLongBits.length - (i * 56)) {
-          data[j] = bitStuffingLongBits[i * 56 + j];
+          data[j] = beforeDistort[i * 56 + j];
+          wrongData[j] = bitStuffingLongBits[i * 56 + j];
         }
         else {
           data[j] = 0;
+          wrongData[j] = 0;
         }
       }
-      partsToSend.add(getLongBitPackage(data, portName));
+      partsToSend.add(getLongBitPackage(data, wrongData, portName));
     }
 
     for (String s : partsToSend) {
@@ -91,7 +97,7 @@ public class Output {
     return fullOutput.toString();
   }
 
-  public static String getLongBitPackage(long[] bitStuff, String portName) {
+  public static String getLongBitPackage(long[] bitStuff, long[] wrongBitStuff, String portName) {
     StringBuilder output = new StringBuilder();
     long[] flag = BytesBits.fromBytesArrayToBits(new byte[] {6, 0, 0, 0, 0, 0, 0, 0});
     output.append("getLongBitPackage(flag): ");
@@ -107,11 +113,11 @@ public class Output {
     output.append("getLongBitPackage(source): ");
     output.append(outputln(source));
 
-    long[] data = bitStuff;
+    long[] data = wrongBitStuff;
     output.append("getLongBitPackage(data): ");
     output.append(outputln(data));
 
-    long[] fcs = new long[] {0, 0, 0, 0, 0, 0, 0, 0};
+    long[] fcs = HemmingCodeClass.getFCSHemmingCode(bitStuff);
     output.append("getLongBitPackage(fcs): ");
     output.append(outputln(fcs));
     output.append("\n");

@@ -1,9 +1,8 @@
 package org.example;
 
-import java.util.Arrays;
-import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 public class BitStuffingClass {
   public static void main(String[] args) {
@@ -78,15 +77,6 @@ public class BitStuffingClass {
         zeroes = 0;
       }
     }
-    for (int i = 0; i < newLongBits.length; i++){
-      if(onesBitsPos.contains(i)){
-        System.out.print("(" + 1 + ")");
-      }
-      else {
-        System.out.print(newLongBits[i]);
-      }
-    }
-    System.out.println();
     return newLongBits;
   }
 
@@ -94,15 +84,16 @@ public class BitStuffingClass {
   public static List<long[]> listOfLongBitsToSend(String string, String portName) {
     List<long[]> partsToSend = new LinkedList<>();
     long[] longBits = BytesBits.fromBytesArrayToBits(string.getBytes());
-    for(long l : longBits){
-      System.out.print(l);
-    }
-    System.out.println();
-    long[] bitStuffingLongBits = bitStuffingDataFrom(longBits);
+    outputln(longBits);
+    long[] beforeDistort = bitStuffingDataFrom(longBits);
+    outputln(beforeDistort);
+    long[] bitStuffingLongBits = distortData(beforeDistort);
     outputln(bitStuffingLongBits);
     long[] data = new long[56];
+    long[] distortData = new long[56];
     for(int i = 0; i < data.length; i++){
       data[i] = 0;
+      distortData[i] = 0;
     }
 
     int iterations = (bitStuffingLongBits.length % 56 != 0) ? bitStuffingLongBits.length / 56 + 1 :
@@ -111,13 +102,15 @@ public class BitStuffingClass {
     for(int i = 0; i < iterations; i++){
       for(int j = 0; j < 56; j++){
         if(j < bitStuffingLongBits.length - (i * 56)) {
-          data[j] = bitStuffingLongBits[i * 56 + j];
+          distortData[j] = bitStuffingLongBits[i * 56 + j];
+          data[j] = beforeDistort[i * 56 + j];
         }
         else {
+          distortData[j] = 0;
           data[j] = 0;
         }
       }
-      partsToSend.add(getLongBitPackage(data, portName));
+      partsToSend.add(getLongBitPackage(data, distortData, portName));
     }
     return partsToSend;
   }
@@ -129,7 +122,7 @@ public class BitStuffingClass {
     System.out.println();
   }
 
-  public static long[] getLongBitPackage(long[] bitStuff, String portName) {
+  public static long[] getLongBitPackage(long[] bitStuff, long[] distortBitStuff, String portName) {
     long[] flag = BytesBits.fromBytesArrayToBits(new byte[]{0, 0, 0, 0, 0, 0, 0, 6});
     System.out.print("getLongBitPackage(flag): ");
     for(long l : flag){
@@ -147,11 +140,11 @@ public class BitStuffingClass {
     System.out.print("getLongBitPackage(source): ");
     outputln(source);
 
-    long[] data = bitStuff;
+    long[] data = distortBitStuff;
     System.out.print("getLongBitPackage(data): ");
     outputln(data);
 
-    long[] fcs = new long[] {0, 0, 0, 0, 0, 0, 0, 0};
+    long[] fcs = HemmingCodeClass.getFCSHemmingCode(bitStuff);
     System.out.print("getLongBitPackage(fcs): ");
     outputln(fcs);
 
@@ -198,6 +191,16 @@ public class BitStuffingClass {
     return data;
   }
 
+  public static long[] fcsFromPackage(long[] fullPackage) {
+    long[] fcs = new long[8];
+    int j = 0;
+    for (int i = fullPackage.length - 8; i < fullPackage.length; i++) {
+      fcs[j] = fullPackage[i];
+      j++;
+    }
+    return fcs;
+  }
+
   public static long[] getPortNumInLongBits(String portNum) {
     long[] portNumLongBits = BytesBits.fromBytesArrayToBits(portNum.getBytes());
     long[] finalPortNumBits = new long[32];
@@ -224,5 +227,27 @@ public class BitStuffingClass {
       newLongBits[j] = args[j];
     }
     return newLongBits;
+  }
+
+  public static long[] distortData(long[] data) {
+    long[] newData = new long[data.length];
+    for(int i = 0; i < newData.length; i++){
+      newData[i] = data[i];
+    }
+    Random random = new Random();
+    int randomNumber = random.nextInt(100);
+    if (randomNumber < 25 && (newData.length / 56 > 1 || (newData.length / 56 == 1 && newData.length % 56 != 0))) {
+      int pos1 = random.nextInt(newData.length - 1);
+      int pos2 = pos1;
+      while (pos1 == pos2 && (pos1 / 56 == pos2 / 56)) {
+        pos2 = random.nextInt(newData.length - 1);
+      }
+      newData[pos1] = (newData[pos1] == 1) ? 0 : 1;
+      newData[pos2] = (newData[pos2] == 1) ? 0 : 1;
+    } else if (randomNumber < 85) {
+      int pos = random.nextInt(newData.length - 1);
+      newData[pos] = (newData[pos] == 1) ? 0 : 1;
+    }
+    return newData;
   }
 }

@@ -325,7 +325,14 @@ public class Main extends Application {
             byte[] receivedBytes = firstWindowPortsPair[1].readBytes();
             long[] receivedBytesInLong = BytesBits.fromBytesArrayToBits(receivedBytes);
 
-            allBits = BitStuffingClass.extractDataFromPackage(allBits, BitStuffingClass.dataFromPackage(receivedBytesInLong));
+            long[] receivedFcs = BitStuffingClass.fcsFromPackage(receivedBytesInLong);
+            long[] receivedData = BitStuffingClass.dataFromPackage(receivedBytesInLong);
+            long[] currentFcs = HemmingCodeClass.getFCSHemmingCode(receivedData);
+            secondWindowsStatusBar.setText(secondWindowsStatusBar.getText() + "Current FCS: " +
+                Arrays.toString(currentFcs) + "\n");
+            long[] finalData = HemmingCodeClass.checkHemmingCode(receivedData, receivedFcs);
+
+            allBits = BitStuffingClass.extractDataFromPackage(allBits, finalData);
             BitStuffingClass.outputln(allBits);
 
 
@@ -383,19 +390,21 @@ public class Main extends Application {
             byte[] receivedBytes = secondWindowPortsPair[1].readBytes();
             long[] receivedBytesInLong = BytesBits.fromBytesArrayToBits(receivedBytes);
 
-            allBits = BitStuffingClass.extractDataFromPackage(allBits, BitStuffingClass.dataFromPackage(receivedBytesInLong));
-            BitStuffingClass.outputln(allBits);
+            long[] receivedFcs = BitStuffingClass.fcsFromPackage(receivedBytesInLong);
+            long[] receivedData = BitStuffingClass.dataFromPackage(receivedBytesInLong);
+            long[] currentFcs = HemmingCodeClass.getFCSHemmingCode(receivedData);
+            firstWindowsStatusBar.setText(firstWindowsStatusBar.getText() + "Current FCS: " +
+                Arrays.toString(currentFcs) + "\n");
+            long[] finalData = HemmingCodeClass.checkHemmingCode(receivedData, receivedFcs);
 
+            allBits = BitStuffingClass.extractDataFromPackage(allBits, finalData);
+            BitStuffingClass.outputln(allBits);
 
             secondWindowPortsPair[0].closePort();
             secondWindowPortsPair[1].closePort();
           }
           long[] cuttedBits = BitStuffingClass.cutting(allBits);
           long[] stuffedBits = BitStuffingClass.bitStuffingDataTo(cuttedBits);
-          for(long l : stuffedBits){
-            System.out.print(l);
-          }
-          System.out.println();
 
           firstWindowBytesReceivedField.setText(String.valueOf(packageToSend.size() * 24));
           firstWindowsOutputField.setText(new String(BytesBits.fromBitsToByteArray(stuffedBits)));
